@@ -11,6 +11,7 @@ import { Route, Routes } from "react-router-dom";
 import AuthorDasboard from "./Pages/AuthorDasboard";
 import FlowPage from "./Pages/FlowPage";
 import Testing from "./Pages/Testing";
+import NotesEditor from "./Pages/NotesEditor";
 
 function App() {
   // const [count, setCount] = useState(0);
@@ -36,6 +37,8 @@ function App() {
         <Route path="/search" element={<SearchBar/>}/>
         <Route path="/FlowPage" element={<FlowPage/>}/>
         <Route path="testing" element={<Testing/>}/>
+        <Route path="/editor" element={<NotesEditor/>}/>
+        
         </Routes>
 
     </>

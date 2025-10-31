@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from 'react'
 import ReactFlow, {
   useNodesState,
   useEdgesState,
@@ -6,9 +6,9 @@ import ReactFlow, {
   Controls,
   Background,
 } from "reactflow";
-import * as d3 from "d3";
 import "reactflow/dist/style.css";
-import "./Flow.css";
+import "./Testing.css"
+import * as d3 from "d3";
 
 const initialNodes = [
   { id: "a", data: { label: "A" }, position: { x: 0, y: 0 } },
@@ -24,103 +24,52 @@ const initialEdges = [
   { id: "e2", source: "b", target: "c" },
   { id: "e3", source: "c", target: "d" },
 ];
+function Testing() {
+const [nodes,setNodes,onNodesChange] = useNodesState(initialNodes);
+const [edges,setEdges,onEdgesChange] =useEdgesState(initialEdges);
+// key parts only (not full file)
+const simNodesRef = useRef([]);
+const simulationRef = useRef(null);
 
-export default function ForceFlow() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [nForce, setNForce] = useState(-200);
+const width = 800;
+  const height = 600;
 
-  const simNodesRef = useRef([]); // d3 simulation nodes
-  const simulationRef = useRef(null); // store simulation instance
+useEffect(() => {
+  simNodesRef.current = nodes.map(n => ({ ...n, x: n.position.x, y: n.position.y }));
+  const simLinks = edges.map(e => ({ source: e.source, target: e.target }));
 
-  useEffect(() => {
-    // copy of React Flow nodes → d3 works on its own copy
-    simNodesRef.current = nodes.map((n) => ({
-      ...n,
-      x: n.position.x,
-      y: n.position.y,
-    }));
-    const simLinks = edges.map((e) => ({ source: e.source, target: e.target }));
+  const sim = d3.forceSimulation(simNodesRef.current)
+    .force("link", d3.forceLink(simLinks).id(d => d.id).distance(100))
+    .force("charge", d3.forceManyBody().strength(-120))
+    .force("center", d3.forceCenter(width/2, height/2))
+    .on("tick", () => {
+      setNodes(nds => nds.map(n => {
+        const sn = simNodesRef.current.find(s => s.id === n.id);
+        return { ...n, position: { x: sn.x, y: sn.y } };
+      }));
+    });
 
-    const simulation = d3
-      .forceSimulation(simNodesRef.current)
-      .force(
-        "link",
-        d3
-          .forceLink(simLinks)
-          .id((d) => d.id)
-          .distance(120)
-      )
-      .force("charge", d3.forceManyBody().strength(nForce))
-      .force("center", d3.forceCenter(400, 250))
-      .force("Charge",d3.forceCollide(10))
-      .on("tick", () => {
-        setNodes((nds) =>
-          nds.map((n) => {
-            const simNode = simNodesRef.current.find((sn) => sn.id === n.id);
-            return {
-              ...n,
-              position: { x: simNode.x, y: simNode.y },
-            };
-          })
-        );
-      });
+  simulationRef.current = sim;
+  return () => sim.stop();
+}, [edges, nodes.length /*or other deps*/, ]);
 
-    simulationRef.current = simulation;
 
-    return () => simulation.stop();
-  }, [edges, nForce, setNodes]);
 
-  // change force every 300ms
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNForce(() => (Math.random() > 0.5 ? -20 : 20));
-    }, 300);
-    return () => clearInterval(interval);
-  }, []);
-
-  // 👇 Handle dragging nodes
-  const handleNodeDragStart = (event, node) => {
-    const simNode = simNodesRef.current.find((sn) => sn.id === node.id);
-    if (simNode) {
-      simNode.fx = simNode.x;
-      simNode.fy = simNode.y;
-    }
-    simulationRef.current?.alphaTarget(0.3).restart();
-  };
-
-  const handleNodeDrag = (event, node) => {
-    const simNode = simNodesRef.current.find((sn) => sn.id === node.id);
-    if (simNode) {
-      simNode.fx = node.position.x;
-      simNode.fy = node.position.y;
-    }
-  };
-
-  const handleNodeDragStop = (event, node) => {
-    const simNode = simNodesRef.current.find((sn) => sn.id === node.id);
-    if (simNode) {
-      simNode.fx = null;
-      simNode.fy = null;
-    }
-    simulationRef.current?.alphaTarget(0); // cool down
-  };
-
-  return (
-    <div style={{ width: "100%", height: "600px" }}>
+return (
+    <div className="flow-container" style={{width:"100%",height: "100vh"}}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onNodeDragStart={handleNodeDragStart}
-        onNodeDrag={handleNodeDrag}
-        onNodeDragStop={handleNodeDragStop}
+        fitView
       >
-        <MiniMap />
-        <Controls />
-        <Background />
+        <MiniMap/>
+        <Controls/>
+        <Background/>
       </ReactFlow>
     </div>
-  );
+  )
 }
+
+export default Testing
